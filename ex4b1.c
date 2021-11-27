@@ -9,31 +9,35 @@
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
+#include <signal.h>
+#include <unistd.h> // sleep()
 
 // -----------------------------structs and define-----------------------------
 #define MAX_MSG_LEN 200
-#define ARR_SIZE 10000
+#define ARR_SIZE 2//10000
 #define NUM_OF_GEN 3
 
-struct data {
-	int _manu_id;
+struct Data {
+	pid_t _id;
 	int _prime;
 };
 
 struct my_msgbuf {
 	long _mtype;
-	struct data _msg_data;
+	struct Data _data;
 };
+
+int end = 0;
 
 // ----------------------------------------------------------------------------
 void get_external_id(key_t* key);
 void create_queue(int* queue_id, key_t key);
 void fill_array(int arr[], int queue_id, long int allowed_type);
 void remove_queue(int queue_id);
-int count_appear(int arr[], int num, int index);
-void update_min(int* min_prime, int prime);
-void update_min(int* min_prime, int prime);
-void get_prime_from_queue(struct my_msgbuf* my_msg);
+int count_appear(int arr[], int num, int index, int* count_new);
+void update_max_and_min(int prime, int* max_prime, int* min_prime);
+void get_prime_from_queue(int queue_id, struct my_msgbuf* my_msg, long int allowed_type);
+void return_appear(struct my_msgbuf* my_msg, int queue_id);
 void end_fill();
 // ----------------------------------------------------------------------------
 
@@ -67,33 +71,65 @@ void prepar_fill()
 void fill_array(int arr[], int queue_id, long int allowed_type)
 {
 	int i,
+		count_new = 0,
 		max_prime = 0,
 		min_prime = 0;
+	struct my_msgbuf my_msg;
 
-	for (i = 0; i < ARR_SIZE; i++) {
-		struct my_msgbuf my_msg;
-		int status;
-		
+	for (i = 0; i < ARR_SIZE && !end; i++) 
+	{
 		// read num from queue
-		//get_prime_from_queue(&my_msg); todo - insert msrcv to this function
-		status = msgrcv(queue_id,
-						(struct msgbuf*)&my_msg,
-						sizeof(struct data),
-						allowed_type,
-						0);
-		if (status == -1)
+		//get_prime_from_queue(queue_id, &my_msg, allowed_type); //todo - insert msrcv to this function		
+		if (msgrcv(queue_id,
+			&my_msg,
+			sizeof(struct Data),
+			1,
+			0) == -1)
 		{
 			perror("msgrcv failed");
-			exit(EXIT_FAILURE);
+			end = 1;
+		}
+		arr[i] = my_msg._data._prime;
+		update_max_and_min(my_msg._data._prime, &max_prime, &min_prime);
+		// read to queue - return appearence:
+		//return_appear(&my_msg, queue_id);		
+		my_msg._mtype = my_msg._data._id;
+		my_msg._data._prime = count_appear(arr, my_msg._data._prime, i, &count_new);
+		my_msg._data._id = getpid();
+		if (!end && msgsnd(queue_id, &my_msg,
+			sizeof(struct Data), 0) == -1)
+		{
+			perror("msgsnd failed");
+			end = 1;
 		}
 
-		printf("Got %d from queue\n", my_msg._msg_data._prime);   // todo - delete
-		//count_appear(arr, my_msg._msg_data._prime, i);
-		//return_appear(); // todo
-		//update_max(&max_prime, my_msg._msg_data._prime);
-		//update_min(&min_prime, my_msg._msg_data._prime);
+		printf("sent %d to queue %d \n", my_msg._data._prime, my_msg._data._id);   // todo - delete
 	}
 
+	if (msgrcv(queue_id,
+		&my_msg,
+		sizeof(struct Data),
+		1,
+		0) == -1)
+	{
+		perror("msgrcv failed");
+		end = 1;
+	}
+
+	// send to end
+	my_msg._mtype = my_msg._data._id;
+	my_msg._data._prime = -1;
+	my_msg._data._id = getpid();
+	if (msgsnd(queue_id, &my_msg,
+		sizeof(struct Data), 0) == -1)
+	{
+		perror("msgsnd failed");
+		end = 1;
+	}
+
+	printf("New prime in arr: %d\n", count_new);
+	printf("Max prime in arr: %d\n", max_prime);
+	printf("Min prime in arr: %d\n", min_prime);
 }
 // ----------------------------------------------------------------------------
 
@@ -107,59 +143,68 @@ void end_fill()
 }
 // ----------------------------------------------------------------------------
 
-void get_prime_from_queue(struct my_msgbuf* my_msg)
+void get_prime_from_queue(int queue_id, struct my_msgbuf* my_msg, long int allowed_type)
 {
-	int status;
-
-	status = msgrcv(queue_id,
-					(struct msgbuf*)&my_msg,
-					sizeof(struct data),
-					allowed_type,
-					0);
-	if (status == -1)
+	if (msgrcv(queue_id,
+		&my_msg,
+		sizeof(struct Data),
+		1,
+		0) == -1)
 	{
 		perror("msgrcv failed");
-		exit(EXIT_FAILURE);
-	}	
+		printf("fail here1");
+		end = 1; 
+	}
+}
+// ----------------------------------------------------------------------------
+
+void return_appear(struct my_msgbuf* my_msg, int queue_id)
+{
+	my_msg->_mtype = my_msg->_data._id;
+	my_msg->_data._prime = 0; // todo //count_appear(arr, my_msg._msg_data._prime, i);
+	if (!end && msgsnd(queue_id, &my_msg,
+		sizeof(struct Data), 0) == -1)
+	{
+		perror("msgsnd failed");
+		end = 1;
+	}
 }
 // ----------------------------------------------------------------------------
 
 // this function update max prime in array
-void update_max(int* max_prime, int prime)
+void update_max_and_min(int prime, int* max_prime, int* min_prime)
 {
 	if ((*max_prime) == 0 || prime > (*max_prime))
 		(*max_prime) = prime;
-}
-// ----------------------------------------------------------------------------
 
-// this function update min prime in array
-void update_min(int* min_prime, int prime)
-{
-	if ((*min_prime) == 0 || prime > (*min_prime))
+	if ((*min_prime) == 0 || prime < (*min_prime))
 		(*min_prime) = prime;
 }
 // ----------------------------------------------------------------------------
 
 // this function count appearance of num in array and returns the result
-int count_appear(int arr[], int num, int index)
+int count_appear(int arr[], int num, int index, int* count_new)
 {
-    int i,
-        counter = 0;
+	int i,
+		counter = 0;
 
-    for (i = 0; i < index; ++i)
-    {
-        if (arr[i] == num)
-            ++counter;
-    }
+	for (i = 0; i < index; ++i)
+	{
+		if (arr[i] == num)
+			++counter;
+	}
 
-    return counter;
+	if (counter == 0)
+		++(*count_new);
+
+	return counter;
 }
 // ----------------------------------------------------------------------------
 
 // get an id for the queue
 void get_external_id(key_t* key)
 {
-	if (((*key) = ftok(".", '5')) == -1)
+	if (((*key) = ftok(".", '6')) == -1)
 	{
 		perror("ftok failed");
 		exit(EXIT_FAILURE);
