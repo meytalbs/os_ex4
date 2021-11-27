@@ -26,6 +26,7 @@ struct my_msgbuf {
 void get_external_id(key_t* key);
 void open_existing_queue(int* queue_id, key_t key);
 void write_to_queue(int queue_id);
+int get_prime();
 // ----------------------------------------------------------------------------
 
 int main(void)
@@ -42,52 +43,48 @@ int main(void)
 }
 // ----------------------------------------------------------------------------
 
-// end func
-// print num of diff
-// print value that fill get the most
-
 void write_to_queue(int queue_id)
 {
 	struct my_msgbuf my_msg;
 
 	my_msg._mtype = 1;
-	while (scanf(" %d", &my_msg._msg_data._prime) != EOF)
+	while (my_msg._msg_data._prime != -1) // todo - untill not get -1
 	{
-		my_msg._msg_data._manu_id = 1;
+		my_msg._msg_data._manu_id = 1; // todo - the real id
+		my_msg._msg_data._prime = get_prime();
 		if (msgsnd(queue_id,
-			(struct msgbuf*)&my_msg,
-			sizeof(struct data),
-			0) == -1) {
+				  (struct msgbuf*)&my_msg,
+			      sizeof(struct data),
+			      0) == -1) 
+		{
 			perror("msgsnd failed");
 			exit(EXIT_FAILURE);
 		}
 		my_msg._mtype++;
 		if (my_msg._mtype > 3)
 			my_msg._mtype = 1;
+
+	 	// read from queue apperance of num in array
+	 	// update diff num
+	 	// check if need to end (in the msg it get) and if need to - call end func
 	}
+}
+// ----------------------------------------------------------------------------
 
-	// create num
-	// while()
-	// {
-	// 	// get random num
-	// 	// send prime to queue with id
-	// 	// read from queue apperance of num in array
-	// 	// update diff num
+// end_create_prime()
+//{
+// print num of diff
+// print value that fill get the most
+//}
+// ----------------------------------------------------------------------------
 
-	// 	// check if need to end (in the msg it get) and if need to - call end func
-	// 	struct my_msgbuf my_msg;
-	// 	int status;
-	// 	status = msgrcv(queue_id,
-	// 		(struct msgbuf*)&my_msg,
-	// 		MAX_MSG_LEN,
-	// 		allowed_type,
-	// 		0);
-	// 	if (status == -1) {
-	// 		perror("msgrcv failed");
-	// 		exit(EXIT_FAILURE);
-	// 	}
-	// 	printf("Got %s from queue\n", my_msg.mtext);
-	// }
+// this function get prime num
+int get_prime()
+{
+    int num;
+    while (!is_prime(num = rand() % 999 + 2)) {}
+
+    return num;
 }
 // ----------------------------------------------------------------------------
 
