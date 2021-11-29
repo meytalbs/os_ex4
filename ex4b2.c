@@ -1,12 +1,25 @@
 
 /*  Manufacturer numbers - ex4b2.c
-==============================================================================
+===============================================================================
 Written by : Meytal Abrahamian  login : meytalben  id : 211369939
 			 Tomer Akrish               tomerak         315224295
-==============================================================================
+===============================================================================
 
+This program find prime numbers and sent them in queue to array filler.
 
+At the beginning of the program (before the manufacturer starts looking for 
+prime numbers) he sends a message to the array filler with the value 1 - this
+means he is ready to start and after he gets a message that it is possible to
+start, he starts.
 
+The manufacturer of the numbers in an endless loop of get random numbers in the
+range 2..1000, and if the number is prime it sent to the array filler along 
+with his ID (via message queue).
+
+When the manufacturer receives a message from the array filler to end the 
+program, it shows how many entries he grilled were new in the array and also
+how many times it appeared in the array the entry he sent him and appeared 
+most often in the array
 */
 // ---------------------------------includes-----------------------------------
 #include <stdio.h>

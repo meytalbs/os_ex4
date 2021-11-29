@@ -5,8 +5,22 @@ Written by : Meytal Abrahamian  login : meytalben  id : 211369939
 			 Tomer Akrish               tomerak         315224295
 ==============================================================================
 
+This program defines an array of int with SIZE_ARR cells.
+Its purpose is to fulfill the the array in prime numbers.
 
+Before the filler begins to fill the array, it waits to receive a message from
+all the NUM_OF_GEN manufacturers that they are connected to the queue of 
+messages. Once everyone is logged in he sends a message that you can start and
+start.
 
+The program, in each round in its main loop, reads a number
+from the message queue. He checks if the number already exists in the array, 
+and sends it to the manufacturer who sent him the number, how many times the
+number has appeare in the array (for new number - zero)
+
+When the filler finishes filling the array it sends the manufacturers a 
+message to finish and shows how many different values there are in its array,
+what the minimum value, and what is the maximum value
 */
 // ---------------------------------includes-----------------------------------
 #include <stdio.h>
