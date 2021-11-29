@@ -41,6 +41,7 @@ void end_create_prime(int queue_id, int num_of_new_primes, int max_appear_prime,
 int start(int queue_id);
 // ----------------------------------------------------------------------------
 
+// --------------------------------main----------------------------------------
 int main(int argc, char* argv[])
 {
 	int queue_id;						// Internal queue ID
@@ -136,7 +137,7 @@ void write_to_queue(int queue_id)
 
 		// update appear
 		if (my_msg._data._prime > max_appear || 
-			(my_msg._data._prime == 0 && max_appear == 0)) // todo
+			(my_msg._data._prime == 0 && max_appear == 0)) 
 		{
 			max_appear = my_msg._data._prime;
 			max_appear_prime = temp;
