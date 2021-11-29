@@ -27,7 +27,7 @@ struct data {
 };
 
 // -----------------------------------------------------------------------------
-void create_pipes(char* argv[]);
+void create_pipe(char* argv[]);
 void open_pipe_n_run_manu(FILE** from_filler, FILE* to_manufacture[],
     char* argv[]);
 void fill_array(FILE* from_filler, FILE* to_manufacture[], struct data*);
@@ -44,7 +44,7 @@ int main(int argc, char* argv[])
     struct data my_data = { 1000, 0, 0 }; //{min, max, appearance}
     FILE* fifo0, * m_fifo[NUM_OF_GEN];
 
-    create_pipes(argv);
+    create_pipe(argv);
     open_pipe_n_run_manu(&fifo0, m_fifo, argv);
     fill_array(fifo0, m_fifo, &my_data);
     printf("Diversity: %d\nSmallest prime: %d\nBiggest prime: %d\n",
@@ -56,7 +56,7 @@ int main(int argc, char* argv[])
 
 //------------------------------------------------------------------------------
 // this function open pipe using pipe id
-void create_pipes(char* argv[])
+void create_pipe(char* argv[])
 {
     if ((mkfifo(argv[1], S_IFIFO | 0644) == -1) && errno != EEXIST)
     {

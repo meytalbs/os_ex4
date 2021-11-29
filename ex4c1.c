@@ -20,7 +20,7 @@ Written by : Meytal Abrahamian  login : meytalben  id : 211369939
 #include <unistd.h> 
 #include <time.h>
 
-
+//-----------------------------
 #define DB_SIZE 100
 
 int queue_id;
@@ -36,23 +36,26 @@ struct my_msgbuf {				// struct for msg
 	struct Data _data;			// for msg data
 };
 
-// ----------------------------------------------------------------------------
+enum action{ ADD_PROCESS = 1, IS_ON_DB, DELETE_PROSSES };
+
+//-----------------------------------------------------------------------------
 void signal_handler();
 void registration_server();
-void get_external_id(key_t* key);
-void create_queue(key_t key);
-void remove_queue();
-void delete_prosses(int db[], int id);
-void is_on_db(int db[], int id);
-void add_prosses(int db[], int id);
-void add_to_db(int db[], int id);
-int find_id_index(int db[], int id);
+void create_queue(key_t *key);
+void add_process(pid_t db[], pid_t id);
+void add_to_db(pid_t db[], pid_t id);
+void check_on_db(pid_t db, pid_t id);
+void delete_prosses(pid_t db[], pid_t id);
+int is_on_db(pid_t db[], pid_t id);
+int find_id_index(pid_t db[], pid_t id);
 // ----------------------------------------------------------------------------
 
 int main()
 {
+	key_t key;							// External queue ID
 	signal(signal_handler, SIGTINT);
 
+	create_queue(&key);
 	registration_server();
 
 	return EXIT_SUCCESS;
@@ -61,16 +64,14 @@ int main()
 
 void registration_server()
 {
-	int db[DB_SIZE];
-	key_t key;							// External queue ID
-	struct my_msgbuf my_msg;		// for msg to send / get
-
-	create_queue(key);
+	pid_t db[DB_SIZE] = { 0 };
+	
+	struct my_msgbuf my_msg;			// for msg to send / get
 
 	while (1)
 	{
-		if (msgrcv(queue_id, &my_msg, sizeof(struct Data),
-				   ALLOWED_TYPE, 0) == -1)
+		if(msgrcv(queue_id, &my_msg, sizeof(struct Data), ALLOWED_TYPE, 
+																	0) == -1)
 		{
 			perror("msgrcv failed");
 			remove_queue(queue_id);
@@ -78,14 +79,14 @@ void registration_server()
 		
 		switch (my_msg._data._num)
 		{
-		case: ADD_PROSSES
-			add_prosses(db, my_msg._data._id);
+		case: ADD_PROCESS
+			add_process(db, my_msg._data._id);
 			break;
 		case: IS_ON_DB
-			is_on_db(db, my_msg._data._id);
+			check_on_db(db, my_msg._data._id);
 			break;
 		case: DELETE_PROSSES
-			delete_prosses(db, my_msg._data._id);
+			delete_process(db, my_msg._data._id);
 			break;
 		default:
 			break;
@@ -94,64 +95,90 @@ void registration_server()
 }
 // ----------------------------------------------------------------------------
 
-void delete_prosses(int db[], int id)
+// create the queue, if it exists then fail, prmssins = 0600
+void create_queue(key_t* key)
 {
-	int index = find_id_index(db, id);
-	int i;
+	if (((*key) = ftok(".", 'c')) == -1)
+	{
+		perror("ftok failed");
+		exit(EXIT_FAILURE);
+	}
 
-	for (i = index; i < (value_in_db - index); ++i)
-		db[i] = db[i + 1];
-
-	--value_in_db;
+	if ((queue_id = msgget(*key, IPC_CREAT | IPC_EXCL | 0600)) == -1)
+	{
+		perror("msgget failed");
+		exit(EXIT_FAILURE);
+	}
 }
-// ----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
-void is_on_db(int db[], int id)
+void add_process(pid_t db[], pid_t id)
 {
-	int index = find_id_index(db, id);
-
-	if (index == -1)
-		printf("%d\n", 0);
-	else
-		printf("%d\n", 1);
-}
-// ----------------------------------------------------------------------------
-
-void add_prosses(int db[], int id)
-{
-	int index = find_id_index(db, id);
-	struct my_msgbuf my_msg;		// for msg to send / get
-
-	if (index == -1)
+	struct my_msgbuf my_msg;		// for msg to send
+	int in_db = is_on_db(db, id);
+	if (!in_db && value_in_db == DB_SIZE)
 	{
 		add_to_db(db, id);
 		my_msg._data._num = 0;		// prosses added
 	}
-	else if (value_in_db == DB_SIZE)
-		my_msg._data._num = 2;		// db id full
+	else if (in_db)
+		my_msg._data._num = 1;		// in db
 	else
-		my_msg._data._num = 1;		// is in db
+		my_msg._data._num = 2;		// db id full
 
-	my_msg._mtype = id;
-	my_msg._data._id = getpid();
+	my_msg._mtype = 1;
+	my_msg._data._id = id;
 
-	if (msgsnd(queue_id, &my_msg,
-		sizeof(struct Data), 0) == -1)
+	if (msgsnd(queue_id, &my_msg, sizeof(struct Data), 0) == -1)
 	{
 		perror("msgsnd failed");
-		remove_queue(queue_id);
+		kill(getpid(), SIGTINT);
+	}
+}
+//-----------------------------------------------------------------------------
+
+void add_to_db(pid_t db[], pid_t id)
+{
+	int i;
+	for (i = 0; i < DB_SIZE; ++i)
+	{
+		if (0 == db[i])
+		{
+			db[value_in_db] = id;
+			++value_in_db;
+		}
 	}
 }
 // ----------------------------------------------------------------------------
 
-void add_to_db(int db[], int id)
+void check_on_db(pid_t db, pid_t id)
 {
-	db[value_in_db] = id;
+	struct my_msgbuf my_msg;		// for msg to send
+	my_msg._mtype = id;
+	my_msg._data._num = is_on_db(db, id); //1 if in db		0 if isnt in db
+
+	if (msgsnd(queue_id, &my_msg, sizeof(struct Data), 0) == -1)
+	{
+		perror("msgsnd failed");
+		kill(getpid(), SIGTINT);
+	}
+}
+//-----------------------------------------------------------------------------
+
+void delete_prosses(pid_t db[], pid_t id)
+{
+	db[find_id_index(db, id)] = 0;
 	--value_in_db;
+}
+//-----------------------------------------------------------------------------
+
+int is_on_db(pid_t db[], pid_t id)
+{
+	return (find_id_index(db, id) == -1 ? 0 : 1);
 }
 // ----------------------------------------------------------------------------
 
-int find_id_index(int db[], int id)
+int find_id_index(pid_t db[], pid_t id)
 {
 	int i;
 
@@ -163,42 +190,12 @@ int find_id_index(int db[], int id)
 
 	return -1
 }
-// ----------------------------------------------------------------------------
-
-// get an id for the queue
-void get_external_id(key_t* key)
-{
-	if (((*key) = ftok(".", 'c')) == -1)
-	{
-		perror("ftok failed");
-		exit(EXIT_FAILURE);
-	}
-}
-// ----------------------------------------------------------------------------
-
-// create the queue, if it exists then fail, prmssins = 0600
-void create_queue(key_t key)
-{
-	get_external_id(&key);
-
-	if ((queue_id = msgget(key, IPC_CREAT | IPC_EXCL | 0600)) == -1)
-	{
-		perror("msgget failed");
-		exit(EXIT_FAILURE);
-	}
-}
-// ----------------------------------------------------------------------------
-
-void signal_handler()
-{
-	remove_queue();
-}
-// ----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 // remove the queue
 // at this point receiver fails to read from queue 
 // (msgrcv fail) so it exits
-void remove_queue()
+void signal_handler(int sig_num)
 {
 	if (msgctl(queue_id, IPC_RMID, NULL) == -1)
 	{
