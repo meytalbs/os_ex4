@@ -43,7 +43,7 @@ int main(int argc, char* argv[])
 void foo(char* argv[], FILE** to_send, FILE** to_read)
 {
     char my_pipe[6] = "fifo";
-    strcat(my_pipe, argv[m_queue]);//this not work please fix me
+    strcat(my_pipe, argv[m_queue]);
     if ((mkfifo(my_pipe, S_IFIFO | 0644) == -1) && errno != EEXIST)
         exit(EXIT_FAILURE);
 
@@ -106,5 +106,4 @@ void do_process(int seed, FILE** to_send, FILE** to_read)
 
     printf("num of new primes = %d\nmax num of appearances of a prime = %d\n",
         my_data._new_prime, my_data._max_prime_appearance);
-
 }

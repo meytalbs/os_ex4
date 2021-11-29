@@ -22,7 +22,9 @@ Written by : Meytal Abrahamian  login : meytalben  id : 211369939
 
 struct Data {					// for data of msg
 	pid_t _id;					// prosses id
-	int _num;					// prime number
+	int _action;				// prime number
+	int _num;					// prime number	/ sizeof(str)
+	char* _str;					// to check pelindrome
 };
 
 struct my_msgbuf {				// struct for msg
@@ -32,15 +34,18 @@ struct my_msgbuf {				// struct for msg
 
 // ----------------------------------------------------------------------------
 void signal_handler();
-void get_external_id(key_t* key);
-void create_queue(int* queue_id, key_t key);
+void create_queue(int* queue_id, key_t *key);
 void remove_queue(int queue_id);
 // ----------------------------------------------------------------------------
 
 int main()
 {
+	int queue_id;						// Internal queue ID
+	key_t key;							// External queue ID
+
 	signal(signal_handler, SIGTINT);
 
+	create_queue(&queue_id, &key);
 	application_server();
 
 	return EXIT_SUCCESS;
@@ -49,16 +54,12 @@ int main()
 
 void application_server()
 {
-	int queue_id;						// Internal queue ID
-	key_t key;							// External queue ID
 	struct my_msgbuf my_msg;		// for msg to send / get
-
-	create_queue(&queue_id, key);
 
 	while (1)
 	{
-		if (msgrcv(queue_id, &my_msg, sizeof(struct Data),
-			ALLOWED_TYPE, 0) == -1)
+		if (msgrcv(queue_id, &my_msg, sizeof(struct Data), ALLOWED_TYPE,
+																	0) == -1)
 		{
 			perror("msgrcv failed");
 			remove_queue(queue_id);
@@ -66,34 +67,24 @@ void application_server()
 
 		if (is_on_db()) // todo - check if is on db
 		{
-			if (my_msg._data._num == 1)
-			{
-				is_prime();
-			}
-			else if ()
-			{
-				is_poly();
-			}
+			if (1 == my_msg._data._action)
+				is_prime(my_msg._data._num);
+			else
+				is_poly(my_msg._data._str, my_msg._data._num);
+
 		}
 	}
 }
 // ----------------------------------------------------------------------------
 
-// get an id for the queue
-void get_external_id(key_t* key)
+// create the queue, if it exists then fail, prmssins = 0600
+void create_queue(int* queue_id, key_t *key)
 {
 	if (((*key) = ftok(".", 'd')) == -1)
 	{
 		perror("ftok failed");
 		exit(EXIT_FAILURE);
 	}
-}
-// ----------------------------------------------------------------------------
-
-// create the queue, if it exists then fail, prmssins = 0600
-void create_queue(int* queue_id, key_t key)
-{
-	get_external_id(&key);
 
 	if (((*queue_id) = msgget(key, IPC_CREAT | IPC_EXCL | 0600)) == -1)
 	{
@@ -103,10 +94,38 @@ void create_queue(int* queue_id, key_t key)
 }
 // ----------------------------------------------------------------------------
 
+//------------------------------------------------------------------------------
+void is_prime(int number)
+{
+	int i, prime;
+
+	if (number < 2)
+		return 0;
+
+	for (i = 2; i * i <= number; ++i)
+	{
+		if (number % i == 0)
+		{
+			prime = 0;
+			break;
+		}
+	}
+	prime = 1;
+
+	if (msgsnd(queue_id, &my_msg, sizeof(struct Data), 0) == -1)
+	{
+		perror("msgsnd failed");
+		kill(getpid(), SIGTINT);
+	}
+}
+
+void is_poly(my_msg._data._str, my_msg._data._num)
+
+//-----------------------------------------------------------------------------
 // remove the queue
 // at this point receiver fails to read from queue 
 // (msgrcv fail) so it exits
-void remove_queue(int queue_id)
+void signal_handler()
 {
 	if (msgctl(queue_id, IPC_RMID, NULL) == -1)
 	{
@@ -114,10 +133,4 @@ void remove_queue(int queue_id)
 		exit(EXIT_FAILURE);
 	}
 }
-// ----------------------------------------------------------------------------
 
-void signal_handler()
-{
-	remove_queue();
-}
-// ----------------------------------------------------------------------------
