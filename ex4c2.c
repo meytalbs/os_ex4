@@ -26,12 +26,13 @@ Written by : Meytal Abrahamian  login : meytalben  id : 211369939
 #define check_prime 1
 #define allowed_type 2
 #define in_db 2
+#define string_size 100
 
 struct Data_app {
 	pid_t _id;
 	int _action;
 	int _num;					// prime number	/ sizeof(str)
-	char* _str;					// to check pelindrome
+	char _str[string_size];		// to check pelindrome
 };
 
 struct msgbuf_app {
@@ -185,7 +186,7 @@ void pali_handler(char* str, int size)
 
 	msg_app._data._num = is_poly(str, size);
 	msg_app._mtype = client;
-	puts("in here");
+
 	if (msgsnd(queue_id_app, &msg_app, sizeof(struct Data_app), 0) == -1)
 	{
 		perror("msgsnd failed");
@@ -196,6 +197,7 @@ void pali_handler(char* str, int size)
 //------------------------------------------------------------------------------
 int is_poly(char* str, int size)
 {
+	printf("%d\n", size);
 	int start = 0, end = size - 1;
 	while (start < end)
 	{
@@ -213,4 +215,5 @@ void signal_handler(int sig_num)
 		perror("msgctl failed");
 		exit(EXIT_FAILURE);
 	}
+	exit(EXIT_SUCCESS);
 }

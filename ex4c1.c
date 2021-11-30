@@ -205,7 +205,6 @@ void signal_handler(int sig_num)
 		perror("msgctl failed");
 		exit(EXIT_FAILURE);
 	}
+	exit(EXIT_SUCCESS);
 }
 // ----------------------------------------------------------------------------
-
-

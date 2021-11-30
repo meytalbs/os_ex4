@@ -42,6 +42,7 @@ registry server that it must be removed from the system, and he finishes.
 #define allowed_type 3
 #define check_pali 2
 #define server_app 2
+#define string_size 100
 #define REG_CHAR 'c'			// char to registr queue id
 #define APP_CHAR 'd'			// char to application queue id
 #define TYPE_NUMBER 'n'			// for user type 'n'
@@ -53,7 +54,7 @@ struct Data_app {					// for data of msg
 	pid_t _id;					// prosses id
 	int _action;				// action to do
 	int _num;					// prime number	/ sizeof(str)
-	char* _str;
+	char _str[string_size];
 };
 
 struct msgbuf_app {				// struct for msg
@@ -176,16 +177,13 @@ void num_handler(int app_qid)
 void string_handler(int app_qid)
 {
 	struct msgbuf_app msg_app;		// for msg to send / get from queue
-	char* str = NULL;
-	scanf("%s", str);
 
 	msg_app._mtype = server_app;
+	scanf(" %s", msg_app._data._str);
 	msg_app._data._id = getpid();
-	msg_app._data._str = str;
-	puts("mirmir");
-	printf("in here, strlen = :%s", (str));
-	msg_app._data._num = (int)strlen(str);
+	msg_app._data._num = strlen(msg_app._data._str);
 	msg_app._data._action = check_pali;
+
 	send_msg_app_server(&msg_app, app_qid);
 
 	if (msgrcv(app_qid, &msg_app, sizeof(struct Data_app), allowed_type, 0) == -1)
@@ -200,15 +198,10 @@ void exit_handler(int reg_qid)
 {
 	// for msg to send / get from queue
 	struct msgbuf_reg msg_reg = { reg_server, {getpid(), EXIT_PROCESS} };
-	/*
-	msg_reg._data._action = EXIT_PROCESS;
-	msg_reg._data._id = getpid();
-	msg_reg._mtype = reg_server;
-	*/
+
 	if (msgsnd(reg_qid, &msg_reg, sizeof(struct Data_reg), 0) == -1)
 		exit_with_msg("msgsnd failed");
 
-	//sleep(10);
 	exit(EXIT_SUCCESS);
 }
 // ----------------------------------------------------------------------------
