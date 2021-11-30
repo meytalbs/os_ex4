@@ -104,6 +104,8 @@ Output:
 compile: gcc -Wall ex4c1.c -o ex4c1
 run: ./ex3c1
 
+importent: must to run it befor program in ex4c1.c!
+
 
 Program file: ex4c2.c
 ===============================================================================
@@ -125,6 +127,9 @@ Output:
 
 compile: gcc -Wall ex4c2.c -o ex4c2
 run: ./ex3c2
+
+importent: must to run it befor program in ex4c2.c!
+
 
 Program file: ex4c3.c
 ===============================================================================
