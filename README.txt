@@ -73,9 +73,58 @@ importent: must to run ex4b2.c befor this program!
 
 Program file: ex4c1.c
 ===============================================================================
+This program is a server that keeps process in system. 
+The server generates a queue of messages.
+
+The server allows three operations:
+1. Adding a new process.
+2. Checking whether a process is registered in the system.
+3. Removal of an existing process.
+
+When he receives a message requesting to add a process, he checks if process 
+us exists in data base. If the process does not exist, and there is a place in
+the data base its adds the process.
+It responds the message: 0 if the process was successfully added, 1 if the 
+process did not add since it already exists and 2 if the process did not add
+since the data base is full.
+
+When he receives a message asking to check if he has a specific process, he 
+checks if the process number sent to it is stored in the data base, and 
+returns: 1 if it exists, 0 if it does not exist.
+
+When he receives a message requesting to remove a process, he removes it from
+his data base.
+
+When it receives the SIGINT signal, it turns to the handler signal,
+releases the queue, and finishes.
+
+Input:	 
+Output:	 
+
+compile: gcc -Wall ex4c1.c -o ex4c1
+run: ./ex3c1
+
 
 Program file: ex4c2.c
 ===============================================================================
+This program is a server that allows those who are already logged in to 
+perform actions: (A) Check initiality, (b) Check plinths. 
+The server generates a queue of messages.
+
+The server allows two operations:
+1. Checking the primacy of a number.
+2. Checking the plinthromeness of a string
+
+When he receives a message requesting action, he checks to see if the applicant
+is known to the registry server. If so, he performs the operation and returns 
+an answer (0 or 1,) if the applicant is not registered in the system it returns
+the value 1.
+
+Input:	 
+Output:	 
+
+compile: gcc -Wall ex4c2.c -o ex4c2
+run: ./ex3c2
 
 Program file: ex4c3.c
 ===============================================================================

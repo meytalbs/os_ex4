@@ -5,8 +5,18 @@ Written by : Meytal Abrahamian  login : meytalben  id : 211369939
 			 Tomer Akrish               tomerak         315224295
 ==============================================================================
 
+This program is a server that allows those who are already logged in to 
+perform actions: (A) Check initiality, (b) Check plinths. 
+The server generates a queue of messages.
 
+The server allows two operations:
+1. Checking the primacy of a number.
+2. Checking the plinthromeness of a string
 
+When he receives a message requesting action, he checks to see if the applicant
+is known to the registry server. If so, he performs the operation and returns 
+an answer (0 or 1,) if the applicant is not registered in the system it returns
+the value 1.
 */
 // ---------------------------------includes-----------------------------------
 #include <stdio.h>
