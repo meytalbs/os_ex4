@@ -20,15 +20,22 @@ Written by : Meytal Abrahamian  login : meytalben  id : 211369939
 #include <unistd.h> 
 #include <time.h>
 
-//-----------------------------
+//--------------------------globals n structs-----------------------------------
 #define DB_SIZE 100
+#define not_found -1
+#define server_app 2
+#define client 3
+#define added 0
+#define in_db 1
+#define db_full 2
+#define allowed_type 1
 
 int queue_id;
 int value_in_db = 0;
 
 struct Data {					// for data of msg
 	pid_t _id;					// prosses id
-	int _num;					// prime number
+	int _action;
 };
 
 struct my_msgbuf {				// struct for msg
@@ -36,24 +43,25 @@ struct my_msgbuf {				// struct for msg
 	struct Data _data;			// for msg data
 };
 
-enum action{ ADD_PROCESS = 1, IS_ON_DB, DELETE_PROSSES };
+enum action { ADD_PROCESS = 1, IS_ON_DB, DELETE_PROSSES };
 
 //-----------------------------------------------------------------------------
-void signal_handler();
+void signal_handler(int sig_num);
 void registration_server();
-void create_queue(key_t *key);
+void create_queue(key_t* key);
 void add_process(pid_t db[], pid_t id);
 void add_to_db(pid_t db[], pid_t id);
-void check_on_db(pid_t db, pid_t id);
-void delete_prosses(pid_t db[], pid_t id);
+void check_on_db(pid_t db[], pid_t id);
+void delete_process(pid_t db[], pid_t id);
 int is_on_db(pid_t db[], pid_t id);
 int find_id_index(pid_t db[], pid_t id);
+
 // ----------------------------------------------------------------------------
 
 int main()
 {
 	key_t key;							// External queue ID
-	signal(signal_handler, SIGTINT);
+	signal(SIGINT, signal_handler);
 
 	create_queue(&key);
 	registration_server();
@@ -65,32 +73,31 @@ int main()
 void registration_server()
 {
 	pid_t db[DB_SIZE] = { 0 };
-	
+
 	struct my_msgbuf my_msg;			// for msg to send / get
 
 	while (1)
 	{
-		if(msgrcv(queue_id, &my_msg, sizeof(struct Data), ALLOWED_TYPE, 
-																	0) == -1)
+		if (msgrcv(queue_id, &my_msg, sizeof(struct Data), allowed_type, 0) == -1)
 		{
 			perror("msgrcv failed");
-			remove_queue(queue_id);
+			kill(getpid(), SIGINT);
 		}
-		
-		switch (my_msg._data._num)
+
+		switch (my_msg._data._action)
 		{
-		case: ADD_PROCESS
+		case ADD_PROCESS:
 			add_process(db, my_msg._data._id);
 			break;
-		case: IS_ON_DB
+		case IS_ON_DB:
 			check_on_db(db, my_msg._data._id);
 			break;
-		case: DELETE_PROSSES
+		case DELETE_PROSSES:
 			delete_process(db, my_msg._data._id);
 			break;
 		default:
 			break;
-		}	
+		}
 	}
 }
 // ----------------------------------------------------------------------------
@@ -115,24 +122,23 @@ void create_queue(key_t* key)
 void add_process(pid_t db[], pid_t id)
 {
 	struct my_msgbuf my_msg;		// for msg to send
-	int in_db = is_on_db(db, id);
-	if (!in_db && value_in_db == DB_SIZE)
+	int found = is_on_db(db, id);
+	if (!found && value_in_db < DB_SIZE)
 	{
 		add_to_db(db, id);
-		my_msg._data._num = 0;		// prosses added
+		my_msg._data._action = added;
 	}
-	else if (in_db)
-		my_msg._data._num = 1;		// in db
+	else if (found)
+		my_msg._data._action = in_db;
 	else
-		my_msg._data._num = 2;		// db id full
+		my_msg._data._action = db_full;
 
-	my_msg._mtype = 1;
-	my_msg._data._id = id;
+	my_msg._mtype = client;
 
 	if (msgsnd(queue_id, &my_msg, sizeof(struct Data), 0) == -1)
 	{
 		perror("msgsnd failed");
-		kill(getpid(), SIGTINT);
+		kill(getpid(), SIGINT);
 	}
 }
 //-----------------------------------------------------------------------------
@@ -151,30 +157,30 @@ void add_to_db(pid_t db[], pid_t id)
 }
 // ----------------------------------------------------------------------------
 
-void check_on_db(pid_t db, pid_t id)
+void check_on_db(pid_t db[], pid_t id)
 {
-	struct my_msgbuf my_msg;		// for msg to send
-	my_msg._mtype = id;
-	my_msg._data._num = is_on_db(db, id); //1 if in db		0 if isnt in db
+	struct my_msgbuf my_msg;				 // for msg to send
+	my_msg._mtype = server_app;
+	my_msg._data._action = is_on_db(db, id); //1 if in db		0 if isnt in db
 
 	if (msgsnd(queue_id, &my_msg, sizeof(struct Data), 0) == -1)
 	{
 		perror("msgsnd failed");
-		kill(getpid(), SIGTINT);
+		kill(getpid(), SIGINT);
 	}
 }
 //-----------------------------------------------------------------------------
 
-void delete_prosses(pid_t db[], pid_t id)
+void delete_process(pid_t db[], pid_t id)
 {
-	db[find_id_index(db, id)] = 0;
+	db[find_id_index(db, id)] = 0;//maybe add if in db
 	--value_in_db;
 }
 //-----------------------------------------------------------------------------
 
 int is_on_db(pid_t db[], pid_t id)
 {
-	return (find_id_index(db, id) == -1 ? 0 : 1);
+	return (find_id_index(db, id) == not_found ? 0 : 1);
 }
 // ----------------------------------------------------------------------------
 
@@ -188,13 +194,10 @@ int find_id_index(pid_t db[], pid_t id)
 			return i;
 	}
 
-	return -1
+	return not_found;
 }
 //-----------------------------------------------------------------------------
 
-// remove the queue
-// at this point receiver fails to read from queue 
-// (msgrcv fail) so it exits
 void signal_handler(int sig_num)
 {
 	if (msgctl(queue_id, IPC_RMID, NULL) == -1)
@@ -204,3 +207,5 @@ void signal_handler(int sig_num)
 	}
 }
 // ----------------------------------------------------------------------------
+
+

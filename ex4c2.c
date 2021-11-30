@@ -20,65 +20,79 @@ Written by : Meytal Abrahamian  login : meytalben  id : 211369939
 #include <unistd.h> 
 #include <time.h>
 
-struct Data {					// for data of msg
-	pid_t _id;					// prosses id
-	int _action;				// prime number
+//--------------------------globals n structs-----------------------------------
+#define client 3
+#define reg_server 1
+#define check_prime 1
+#define allowed_type 2
+#define in_db 2
+
+struct Data_app {
+	pid_t _id;
+	int _action;
 	int _num;					// prime number	/ sizeof(str)
 	char* _str;					// to check pelindrome
 };
 
-struct my_msgbuf {				// struct for msg
-	long _mtype;				// for msg type
-	struct Data _data;			// for msg data
+struct msgbuf_app {
+	long _mtype;				// app msg type
+	struct Data_app _data;		// app msg data
 };
 
-// ----------------------------------------------------------------------------
-void signal_handler();
-void create_queue(int* queue_id, key_t *key);
-void remove_queue(int queue_id);
-// ----------------------------------------------------------------------------
+struct Data_reg {
+	pid_t _id;
+	int _action;
+};
 
+struct msgbuf_reg {
+	long _mtype;				// reg msg type
+	struct Data_reg _data;		// reg msg data
+};
+
+int queue_id_reg, queue_id_app;
+
+// ----------------------------------------------------------------------------
+void signal_handler(int sig_num);
+void connect_to_queue(key_t* key);
+void create_queue(key_t* key);
+void application_server();
+int is_on_db(struct msgbuf_app msg_app);
+int is_prime(int number);
+void prime_handler(int number);
+void pali_handler(char* str, int size);
+int is_poly(char* str, int size);
+
+// ----------------------------------------------------------------------------
 int main()
 {
-	int queue_id;						// Internal queue ID
-	key_t key;							// External queue ID
+	key_t key_reg, key_app;							// External queue ID
 
-	signal(signal_handler, SIGTINT);
+	signal(SIGINT, signal_handler);
 
-	create_queue(&queue_id, &key);
+	connect_to_queue(&key_reg);
+	create_queue(&key_app);
 	application_server();
 
 	return EXIT_SUCCESS;
 }
-// ----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
-void application_server()
+void connect_to_queue(key_t* key)
 {
-	struct my_msgbuf my_msg;		// for msg to send / get
-
-	while (1)
+	if (((*key) = ftok(".", 'c')) == -1)
 	{
-		if (msgrcv(queue_id, &my_msg, sizeof(struct Data), ALLOWED_TYPE,
-																	0) == -1)
-		{
-			perror("msgrcv failed");
-			remove_queue(queue_id);
-		}
-
-		if (is_on_db()) // todo - check if is on db
-		{
-			if (1 == my_msg._data._action)
-				is_prime(my_msg._data._num);
-			else
-				is_poly(my_msg._data._str, my_msg._data._num);
-
-		}
+		perror("ftok failed");
+		exit(EXIT_FAILURE);
+	}
+	if ((queue_id_reg = msgget((*key), 0)) == -1)
+	{
+		perror("msgget failed");
+		exit(EXIT_FAILURE);
 	}
 }
-// ----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
-// create the queue, if it exists then fail, prmssins = 0600
-void create_queue(int* queue_id, key_t *key)
+void create_queue(key_t* key)
 {
 	if (((*key) = ftok(".", 'd')) == -1)
 	{
@@ -86,7 +100,7 @@ void create_queue(int* queue_id, key_t *key)
 		exit(EXIT_FAILURE);
 	}
 
-	if (((*queue_id) = msgget(key, IPC_CREAT | IPC_EXCL | 0600)) == -1)
+	if ((queue_id_app = msgget(*key, IPC_CREAT | IPC_EXCL | 0600)) == -1)
 	{
 		perror("msgget failed");
 		exit(EXIT_FAILURE);
@@ -94,10 +108,64 @@ void create_queue(int* queue_id, key_t *key)
 }
 // ----------------------------------------------------------------------------
 
-//------------------------------------------------------------------------------
-void is_prime(int number)
+void application_server()
 {
-	int i, prime;
+	struct msgbuf_app msg_app;		// for msg to send / get
+
+	while (1)
+	{
+		if (msgrcv(queue_id_app, &msg_app, sizeof(struct Data_app), allowed_type, 0) == -1)
+		{
+			perror("msgrcv failed");
+			kill(getpid(), SIGINT);
+		}
+
+		if (is_on_db(msg_app))
+		{
+			if (check_prime == msg_app._data._action)
+				prime_handler(msg_app._data._num);
+			else
+				pali_handler(msg_app._data._str, msg_app._data._num);
+		}
+	}
+}
+// ----------------------------------------------------------------------------
+
+int is_on_db(struct msgbuf_app msg_app)
+{
+	struct msgbuf_reg msg_reg = { reg_server, {msg_app._data._id, in_db} };
+
+	if (msgsnd(queue_id_reg, &msg_reg, sizeof(struct Data_reg), 0) == -1)
+	{
+		perror("msgsnd failed");
+		kill(getpid(), SIGINT);
+	}
+	if (msgrcv(queue_id_reg, &msg_reg, sizeof(struct Data_reg), allowed_type, 0) == -1)
+	{
+		perror("msgrcv failed");
+		kill(getpid(), SIGINT);
+	}
+	return msg_reg._data._action;//1 if in db		0 if isnt in db
+}
+// ----------------------------------------------------------------------------
+
+void prime_handler(int number)
+{
+	struct msgbuf_app msg_app;
+	msg_app._data._num = is_prime(number);
+	msg_app._mtype = client;
+
+	if (msgsnd(queue_id_app, &msg_app, sizeof(struct Data_app), 0) == -1)
+	{
+		perror("msgsnd failed");
+		kill(getpid(), SIGINT);
+	}
+}
+
+//------------------------------------------------------------------------------
+int is_prime(int number)
+{
+	int i;
 
 	if (number < 2)
 		return 0;
@@ -105,32 +173,44 @@ void is_prime(int number)
 	for (i = 2; i * i <= number; ++i)
 	{
 		if (number % i == 0)
-		{
-			prime = 0;
-			break;
-		}
+			return 0;
 	}
-	prime = 1;
+	return 1;
+}
 
-	if (msgsnd(queue_id, &my_msg, sizeof(struct Data), 0) == -1)
+//------------------------------------------------------------------------------
+void pali_handler(char* str, int size)
+{
+	struct msgbuf_app msg_app;
+
+	msg_app._data._num = is_poly(str, size);
+	msg_app._mtype = client;
+	puts("in here");
+	if (msgsnd(queue_id_app, &msg_app, sizeof(struct Data_app), 0) == -1)
 	{
 		perror("msgsnd failed");
-		kill(getpid(), SIGTINT);
+		kill(getpid(), SIGINT);
 	}
 }
 
-void is_poly(my_msg._data._str, my_msg._data._num)
+//------------------------------------------------------------------------------
+int is_poly(char* str, int size)
+{
+	int start = 0, end = size - 1;
+	while (start < end)
+	{
+		if (str[start++] != str[end--])
+			return 0;
+	}
+	return 1;
+}
 
 //-----------------------------------------------------------------------------
-// remove the queue
-// at this point receiver fails to read from queue 
-// (msgrcv fail) so it exits
-void signal_handler()
+void signal_handler(int sig_num)
 {
-	if (msgctl(queue_id, IPC_RMID, NULL) == -1)
+	if (msgctl(queue_id_app, IPC_RMID, NULL) == -1)
 	{
 		perror("msgctl failed");
 		exit(EXIT_FAILURE);
 	}
 }
-
