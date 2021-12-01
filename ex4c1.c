@@ -5,8 +5,29 @@ Written by : Meytal Abrahamian  login : meytalben  id : 211369939
 			 Tomer Akrish               tomerak         315224295
 ==============================================================================
 
+This server keeps process in system. The server generates a queue of messages.
 
+The server allows three operations:
+1. Adding a new process.
+2. Checking whether a process is registered in the system.
+3. Removal of an existing process.
 
+When he receives a message requesting to add a process, he checks if process 
+us exists in data base. If the process does not exist, and there is a place in
+the data base its adds the process.
+It responds the message: 0 if the process was successfully added, 1 if the 
+process did not add since it already exists and 2 if the process did not add
+since the data base is full.
+
+When he receives a message asking to check if he has a specific process, he 
+checks if the process number sent to it is stored in the data base, and 
+returns: 1 if it exists, 0 if it does not exist.
+
+When he receives a message requesting to remove a process, he removes it from
+his data base.
+
+When it receives the SIGINT signal, it turns to the handler signal,
+releases the queue, and finishes.
 */
 // ---------------------------------includes-----------------------------------
 #include <stdio.h>
