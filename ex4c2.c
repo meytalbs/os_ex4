@@ -1,12 +1,11 @@
-
 /* Application server
 ==============================================================================
 Written by : Meytal Abrahamian  login : meytalben  id : 211369939
 			 Tomer Akrish               tomerak         315224295
 ==============================================================================
 
-This program is a server that allows those who are already logged in to 
-perform actions: (A) Check initiality, (b) Check plinths. 
+This program is a server that allows those who are already logged in to
+perform actions: (A) Check initiality, (b) Check plinths.
 The server generates a queue of messages.
 
 The server allows two operations:
@@ -14,7 +13,7 @@ The server allows two operations:
 2. Checking the plinthromeness of a string
 
 When he receives a message requesting action, he checks to see if the applicant
-is known to the registry server. If so, he performs the operation and returns 
+is known to the registry server. If so, he performs the operation and returns
 an answer (0 or 1,) if the applicant is not registered in the system it returns
 the value 1.
 */
@@ -125,7 +124,8 @@ void application_server()
 
 	while (1)
 	{
-		if (msgrcv(queue_id_app, &msg_app, sizeof(struct Data_app), allowed_type, 0) == -1)
+		if (msgrcv(queue_id_app, &msg_app, sizeof(struct Data_app),
+			allowed_type, 0) == -1)
 		{
 			perror("msgrcv failed");
 			kill(getpid(), SIGINT);
@@ -151,7 +151,8 @@ int is_on_db(struct msgbuf_app msg_app)
 		perror("msgsnd failed");
 		kill(getpid(), SIGINT);
 	}
-	if (msgrcv(queue_id_reg, &msg_reg, sizeof(struct Data_reg), allowed_type, 0) == -1)
+	if (msgrcv(queue_id_reg, &msg_reg, sizeof(struct Data_reg), allowed_type,
+		0) == -1)
 	{
 		perror("msgrcv failed");
 		kill(getpid(), SIGINT);
@@ -207,7 +208,6 @@ void pali_handler(char* str, int size)
 //------------------------------------------------------------------------------
 int is_poly(char* str, int size)
 {
-	printf("%d\n", size);
 	int start = 0, end = size - 1;
 	while (start < end)
 	{

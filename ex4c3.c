@@ -1,4 +1,3 @@
-
 /* Client
 ==============================================================================
 Written by : Meytal Abrahamian  login : meytalben  id : 211369939
@@ -135,7 +134,8 @@ void registr_to_server(int reg_qid)
 		exit_with_msg("msgsnd failed");
 
 	// get response from server
-	if (msgrcv(reg_qid, &msg_reg, sizeof(struct Data_reg), allowed_type, 0) == -1)
+	if (msgrcv(reg_qid, &msg_reg, sizeof(struct Data_reg), allowed_type,
+		0) == -1)
 		exit_with_msg("msgrcv failed");
 
 	// check if process was registred successfully		//reg to serever/full
@@ -186,7 +186,8 @@ void string_handler(int app_qid)
 
 	send_msg_app_server(&msg_app, app_qid);
 
-	if (msgrcv(app_qid, &msg_app, sizeof(struct Data_app), allowed_type, 0) == -1)
+	if (msgrcv(app_qid, &msg_app, sizeof(struct Data_app), allowed_type,
+		0) == -1)
 		exit_with_msg("error with msgrcv");
 
 	printf("is the string a palindrome?: %d\n", msg_app._data._num);

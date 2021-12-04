@@ -1,4 +1,3 @@
-
 /* Registration server
 ==============================================================================
 Written by : Meytal Abrahamian  login : meytalben  id : 211369939
@@ -12,15 +11,15 @@ The server allows three operations:
 2. Checking whether a process is registered in the system.
 3. Removal of an existing process.
 
-When he receives a message requesting to add a process, he checks if process 
+When he receives a message requesting to add a process, he checks if process
 us exists in data base. If the process does not exist, and there is a place in
 the data base its adds the process.
-It responds the message: 0 if the process was successfully added, 1 if the 
+It responds the message: 0 if the process was successfully added, 1 if the
 process did not add since it already exists and 2 if the process did not add
 since the data base is full.
 
-When he receives a message asking to check if he has a specific process, he 
-checks if the process number sent to it is stored in the data base, and 
+When he receives a message asking to check if he has a specific process, he
+checks if the process number sent to it is stored in the data base, and
 returns: 1 if it exists, 0 if it does not exist.
 
 When he receives a message requesting to remove a process, he removes it from
@@ -99,7 +98,8 @@ void registration_server()
 
 	while (1)
 	{
-		if (msgrcv(queue_id, &my_msg, sizeof(struct Data), allowed_type, 0) == -1)
+		if (msgrcv(queue_id, &my_msg, sizeof(struct Data), allowed_type,
+			0) == -1)
 		{
 			perror("msgrcv failed");
 			kill(getpid(), SIGINT);

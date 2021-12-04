@@ -1,4 +1,3 @@
-
 /*  Manufacturer numbers - ex4b2.c
 ===============================================================================
 Written by : Meytal Abrahamian  login : meytalben  id : 211369939

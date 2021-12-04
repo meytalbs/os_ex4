@@ -1,8 +1,14 @@
-/* ex3b.c
+/* ex4b.c
 ===============================================================================
 Written by: Meytal Abrahamian  login: meytalben  id: 211369939
             Tomer Akrish              tomerak        315224295
 ===============================================================================
+* This program gets prime numbers from 3 diffrent manufactures and fills an array
+every time the program gets a prime it will count how many time it had appear
+in the array and will send it as an answer to the manufactures who send it.
+in addition, the program will count number of new primes, saves the latgest
+and smallest prime and finally will print it.
+the program comunicates with the manufactures using named pipes
 */
 
 // --------------------------------includes------------------------------------
@@ -17,8 +23,7 @@ Written by: Meytal Abrahamian  login: meytalben  id: 211369939
 //--------------------------------global variables------------------------------
 #define ARR_SIZE 10000
 #define NUM_OF_GEN 3
-
-const int NUM_OF_PIPES = 5;
+#define NUM_OF_PIPES 5
 
 struct data {
     int _min_prime;
@@ -27,7 +32,7 @@ struct data {
 };
 
 // -----------------------------------------------------------------------------
-void create_pipe(char* argv[]);
+void create_pipes(char* argv[]);
 void open_pipe_n_run_manu(FILE** from_filler, FILE* to_manufacture[],
     char* argv[]);
 void fill_array(FILE* from_filler, FILE* to_manufacture[], struct data*);
@@ -44,7 +49,7 @@ int main(int argc, char* argv[])
     struct data my_data = { 1000, 0, 0 }; //{min, max, appearance}
     FILE* fifo0, * m_fifo[NUM_OF_GEN];
 
-    create_pipe(argv);
+    create_pipes(argv);
     open_pipe_n_run_manu(&fifo0, m_fifo, argv);
     fill_array(fifo0, m_fifo, &my_data);
     printf("Diversity: %d\nSmallest prime: %d\nBiggest prime: %d\n",
@@ -56,7 +61,7 @@ int main(int argc, char* argv[])
 
 //------------------------------------------------------------------------------
 // this function open pipe using pipe id
-void create_pipe(char* argv[])
+void create_pipes(char* argv[])
 {
     if ((mkfifo(argv[1], S_IFIFO | 0644) == -1) && errno != EEXIST)
     {
@@ -99,7 +104,7 @@ void fill_array(FILE* from_filler, FILE* to_manufacture[], struct data* my_data)
         fscanf(from_filler, "%d%d", &prime, &id);
         arr[i] = prime;
         count_appearance = count_appear(arr, prime, i);
-        //maybe diffrent func
+
         if (count_appearance == 0)
             ++my_data->_prime_diversity;
         if (prime > my_data->_max_prime)

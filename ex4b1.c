@@ -1,4 +1,3 @@
-
 /* Fills the array - ex4b1.c
 ==============================================================================
 Written by : Meytal Abrahamian  login : meytalben  id : 211369939

@@ -6,9 +6,35 @@ Written by : Meytal Abrahamian  login : meytalben  id : 211369939
 
 Program file: ex4a1.c
 ===============================================================================
+This program gets prime numbers from 3 diffrent manufactures and fills an array
+every time the program gets a prime it will count how many time it had appear 
+in the array and will send it as an answer to the manufactures who send it.
+in addition, the program will count number of new primes, saves the latgest
+and smallest prime and finally will print it.
+the program comunicates with the manufactures using named pipes
+
+input:		no input
+output:		diversity, smallest value, biggest value
+
+compile: gcc -Wall ex4a1.c -o ex4a1
+run: ./ex4a1 fifo0 fifo1 fifo2 fifo3
+
 
 Program file: ex4a2.c
 ===============================================================================
+This program send to the filler program a prime number and wait for response
+how many times has the prime appeared in the filler array if its the first 
+appearance the program will count it and once the array is full will print
+how many new numbers has it sent and which number he sent appeared the most
+
+input:		no input
+output:		diversity, most appeared value
+
+compile: gcc -Wall ex4a2.c -o ex4a2
+run: ./ex4a2 fifo0 1/2/3
+
+you will first need to run "ex4a1" and only then this program
+
 
 Program file: ex4b1.c
 ===============================================================================
@@ -36,7 +62,7 @@ Output:
 		Min prime in arr: THE_MIN_VALUE_IN_ARRAY
 
 compile: gcc -Wall ex4b1.c -o ex4b1
-run: ./ex3b1  
+run: ./ex4b1  
 
 importent: must to run it befor program in ex4b2.c!
 
@@ -66,7 +92,7 @@ Output:
 		APPEARENCE_IN_ARRAY times (in one line)
 
 compile: gcc -Wall ex4b2.c -o ex4b2
-run: ./ex3b2
+run: ./ex4b2 1/2/3
 
 importent: must to run ex4b2.c befor this program!
 
@@ -98,13 +124,13 @@ his data base.
 When it receives the SIGINT signal, it turns to the handler signal,
 releases the queue, and finishes.
 
-Input:	 
-Output:	 
+Input:		*no input*
+Output:		*no output*	 
 
 compile: gcc -Wall ex4c1.c -o ex4c1
-run: ./ex3c1
+run: ./ex4c1
 
-importent: must to run it befor program in ex4c1.c!
+importent: (in 3 diffrent terminals) run order: ./ex4c1 ./ex4c2 ./ex4c3
 
 
 Program file: ex4c2.c
@@ -122,13 +148,13 @@ is known to the registry server. If so, he performs the operation and returns
 an answer (0 or 1,) if the applicant is not registered in the system it returns
 the value 1.
 
-Input:	 
-Output:	 
+Input:		*no input*
+Output:		*no output*
 
 compile: gcc -Wall ex4c2.c -o ex4c2
-run: ./ex3c2
+run: ./ex4c2
 
-importent: must to run it befor program in ex4c2.c!
+importent: (in 3 diffrent terminals) run order: ./ex4c1 ./ex4c2 ./ex4c3
 
 
 Program file: ex4c3.c
@@ -149,11 +175,12 @@ for a response, and displays it on the screen.
 3. When the customer reads the character 'e', he sends a message to the 
 registry server that it must be removed from the system, and he finishes.
 
-Input: 'n' and after \n or ' ' a number OR 's' and after \n or ' ' a string
-Output: 
+Input: 'n' + number to check if he's prime OR 's' to check a string is pali
+		OR 'e' to exit
+Output: n: is the number prime: 1/0		s: is the string palindrome: 1/0
 
 compile: gcc -Wall ex4c3.c -o ex4c3
-run: ./ex4c3  
+run: ./ex4c3
 
-importent: to run this program we must compile and run the programs in files
-ex4c3.c ex4c3.c befor!
+importent: (in 3 diffrent terminals) run order: ./ex4c1 ./ex4c2 ./ex4c3
+
